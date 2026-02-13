@@ -4,7 +4,7 @@ static VAR_NAMES: [char; 21] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'
 #[derive(Clone)]
 enum Term {
   Var(u32),
-  Lam(Box<Term>),
+  Lam(u32, Box<Term>),
   Appl(Box<Term>, Box<Term>),
 }
 
@@ -12,8 +12,8 @@ fn term_to_str(t: &Term, depth: u32) -> String{
   let mut ret = String::new();
 
   match t {
-    Term::Lam(x) => {
-      let var = VAR_NAMES[depth as usize]; 
+    Term::Lam(v, x) => {
+      let var = VAR_NAMES[*v as usize]; 
       ret.push_str(&format!("\\{}.", var));
       ret.push_str(&term_to_str(x, depth+1));
       ret
@@ -33,7 +33,7 @@ fn term_to_str(t: &Term, depth: u32) -> String{
 
 fn check_valid_expr(t: &Term, depth: u32) -> bool {
   match t {
-    Term::Lam(x) => {
+    Term::Lam(_, x) => {
       check_valid_expr(x, depth+1)
     },
     Term::Appl(x, y) => {
@@ -45,44 +45,43 @@ fn check_valid_expr(t: &Term, depth: u32) -> bool {
   }
 }
 
-fn subs_vars (f: &Term, x: u32, y: &Term) -> Term {
+fn subs_vars (f: &mut Term, x: u32, y: &Term) {
   // Term{ perform A B [x := y]
   match f {
     Term::Var(t) => {
       if *t == x {
-        y.clone()
-      } else {
-        Term::Var(*t)
-      }
+        *f = y.clone();
+      }     
     },
-    Term::Lam(s) => {
-      Term::Lam(Box::new(subs_vars(s, x, y)))
+    Term::Lam(_, s) => {
+      subs_vars(s, x, y)
     }
     Term::Appl(r, l) => {
-      Term::Appl(Box::new(subs_vars(r, x, y)), Box::new(subs_vars(l, x, y)))
+      subs_vars(r, x, y);
+      subs_vars(l, x, y);
     }
   }
 }
 
-fn beta_reduce(t: &mut Term, depth: u32) -> Term {
+fn beta_reduce_once(t: &mut Term, depth: u32) -> bool {
   match t {
     Term::Appl(k, y) => {
-      if let Term::Lam(body) = &mut **k {
-        println!("HI");
-        let body = body.clone();
+      if let Term::Lam(v, body) = &mut **k {
+        let mut body = (**body).clone();
         let arg = y.clone();
 
-        subs_vars(&body, depth, &arg)
+        subs_vars(&mut body, *v, &arg);
+        *t = body;
+        true
       } else {
-        Term::Appl(Box::new(beta_reduce(k, depth+1)), Box::new(beta_reduce(y, depth+1)))
+        beta_reduce_once(k, depth+1) || beta_reduce_once(y, depth+1)
       }
     },
-    Term::Var(x) => {
-      let v = x.clone();
-      Term::Var(v)
+    Term::Var(_) => {
+      false
     },
-    Term::Lam(x) =>  {
-      beta_reduce(x, depth+1)
+    Term::Lam(_, x) =>  {
+      beta_reduce_once(x, depth+1)
     }
   }
 }
@@ -90,6 +89,7 @@ fn beta_reduce(t: &mut Term, depth: u32) -> Term {
 fn main() {
   let mut ast = Term::Appl(
                   Box::new(Term::Lam(
+                    0,
                     Box::new(Term::Appl(
                       Box::new(Term::Var(0)),
                       Box::new(Term::Var(3))
@@ -108,7 +108,7 @@ fn main() {
 
   println!("Lambda: {}", lambda_str);
 
-  ast = beta_reduce(&mut ast, 0);
+  beta_reduce_once(&mut ast, 0);
 
   lambda_str = term_to_str(&ast, 0);
 
