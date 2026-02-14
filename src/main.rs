@@ -1,12 +1,17 @@
 
+mod lexer;
+mod parser;
+
 static VAR_NAMES: [char; 21] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u'];
 
-#[derive(Clone)]
+use parser::Term;
+
+/*#[derive(Clone)]
 enum Term {
   Var(u32),
   Lam(u32, Box<Term>),
   Appl(Box<Term>, Box<Term>),
-}
+}*/
 
 fn term_to_str(t: &Term, depth: u32) -> String{
   let mut ret = String::new();
@@ -98,6 +103,17 @@ fn main() {
 
                   Box::new(Term::Var(1))
                 );
+
+ 
+  let mut lx = lexer::lex_text(String::from("(\\a . a) b"));
+  lx.reverse();
+  for x in &lx {
+    print!("{:?} ", x);
+  }
+
+  println!();
+
+  parser::parse_term(&mut lx);
 
   if !check_valid_expr(&ast, 0) {
     println!("Syntax error: Lambda is not well formed");
