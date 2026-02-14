@@ -2,7 +2,6 @@
 mod lexer;
 mod parser;
 
-static VAR_NAMES: [char; 21] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u'];
 
 use parser::Term;
 
@@ -18,9 +17,12 @@ fn term_to_str(t: &Term, depth: u32) -> String{
 
   match t {
     Term::Lam(v, x) => {
-      let var = VAR_NAMES[*v as usize]; 
+      //let var = VAR_NAMES[*v as usize]; 
+      let var = ((*v as u8) + b'a') as char;
+      ret.push_str("(");
       ret.push_str(&format!("\\{}.", var));
       ret.push_str(&term_to_str(x, depth+1));
+      ret.push_str(")");
       ret
     },
     Term::Appl(x, y) => {
@@ -30,7 +32,8 @@ fn term_to_str(t: &Term, depth: u32) -> String{
       ret
     },
     Term::Var(x) => {
-      ret.push(VAR_NAMES[*x as usize]);
+      //ret.push(VAR_NAMES[*x as usize]);
+      ret.push(((*x as u8) + b'a') as char);
       ret
     },
   }
@@ -91,8 +94,9 @@ fn beta_reduce_once(t: &mut Term, depth: u32) -> bool {
   }
 }
 
+
 fn main() {
-  let mut ast = Term::Appl(
+  /*let mut ast = Term::Appl(
                   Box::new(Term::Lam(
                     0,
                     Box::new(Term::Appl(
@@ -102,10 +106,10 @@ fn main() {
                     )),
 
                   Box::new(Term::Var(1))
-                );
+                );*/
 
  
-  let mut lx = lexer::lex_text(String::from("(\\a . a) b"));
+  let mut lx = lexer::lex_text(String::from("(\\a . a t) b"));
   lx.reverse();
   for x in &lx {
     print!("{:?} ", x);
@@ -113,7 +117,7 @@ fn main() {
 
   println!();
 
-  parser::parse_term(&mut lx);
+  let mut ast = parser::parse_term(&mut lx);
 
   if !check_valid_expr(&ast, 0) {
     println!("Syntax error: Lambda is not well formed");
