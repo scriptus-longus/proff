@@ -2,27 +2,41 @@
 mod lexer;
 mod parser;
 
-
 use parser::Term;
+use parser::Type;
 
-/*#[derive(Clone)]
-enum Term {
-  Var(u32),
-  Lam(u32, Box<Term>),
-  Appl(Box<Term>, Box<Term>),
-}*/
+fn type_to_str(t: &Type) -> String {
+  let mut ret = String::new();
+
+  match t {
+    Type::Unit => ret.push_str("U"),
+    Type::Empty => ret.push_str("0"),
+    Type::Arrow(l, r) => {
+      let left = type_to_str(l);
+      ret.push_str(&left);
+      ret.push_str(" -> ");
+      let right = type_to_str(r);
+      ret.push_str(&right);
+    }
+  }
+
+  ret
+}
 
 fn term_to_str(t: &Term, depth: u32) -> String{
   let mut ret = String::new();
 
   match t {
-    Term::Lam(v, x) => {
+    Term::Lam(v, x, t) => {
       //let var = VAR_NAMES[*v as usize]; 
       let var = ((*v as u8) + b'a') as char;
       ret.push_str("(");
       ret.push_str(&format!("\\{}.", var));
       ret.push_str(&term_to_str(x, depth+1));
-      ret.push_str(")");
+      ret.push_str(")    [");
+      let type_str = type_to_str(t);
+      ret.push_str(&type_str);
+      ret.push_str("]");
       ret
     },
     Term::Appl(x, y) => {
@@ -41,7 +55,7 @@ fn term_to_str(t: &Term, depth: u32) -> String{
 
 fn check_valid_expr(t: &Term, depth: u32) -> bool {
   match t {
-    Term::Lam(_, x) => {
+    Term::Lam(_, x, _) => {
       check_valid_expr(x, depth+1)
     },
     Term::Appl(x, y) => {
@@ -61,7 +75,7 @@ fn subs_vars (f: &mut Term, x: u32, y: &Term) {
         *f = y.clone();
       }     
     },
-    Term::Lam(_, s) => {
+    Term::Lam(_, s, _) => {
       subs_vars(s, x, y)
     }
     Term::Appl(r, l) => {
@@ -74,7 +88,7 @@ fn subs_vars (f: &mut Term, x: u32, y: &Term) {
 fn beta_reduce_once(t: &mut Term, depth: u32) -> bool {
   match t {
     Term::Appl(k, y) => {
-      if let Term::Lam(v, body) = &mut **k {
+      if let Term::Lam(v, body, _) = &mut **k {
         let mut body = (**body).clone();
         let arg = y.clone();
 
@@ -88,7 +102,7 @@ fn beta_reduce_once(t: &mut Term, depth: u32) -> bool {
     Term::Var(_) => {
       false
     },
-    Term::Lam(_, x) =>  {
+    Term::Lam(_, x, _) =>  {
       beta_reduce_once(x, depth+1)
     }
   }
@@ -96,26 +110,11 @@ fn beta_reduce_once(t: &mut Term, depth: u32) -> bool {
 
 
 fn main() {
-  /*let mut ast = Term::Appl(
-                  Box::new(Term::Lam(
-                    0,
-                    Box::new(Term::Appl(
-                      Box::new(Term::Var(0)),
-                      Box::new(Term::Var(3))
-                      ))
-                    )),
-
-                  Box::new(Term::Var(1))
-                );*/
-
- 
-  let mut lx = lexer::lex_text(String::from("(\\a . a t) b"));
-  lx.reverse();
+  let mut lx = lexer::lex_text(String::from("(\\a : A -> A. a t)"));
   for x in &lx {
-    print!("{:?} ", x);
+    println!("{:?}", x);
   }
-
-  println!();
+  lx.reverse();
 
   let mut ast = parser::parse_term(&mut lx);
 

@@ -7,6 +7,7 @@ pub enum Tokens {
   Bopen,
   Bclose,
   Delim,
+  Arrow,
   Dot
 }
 
@@ -22,6 +23,12 @@ pub fn lex_text(mut text: String) -> Vec<Tokens> {
       '.' => buf.push(Tokens::Dot),
       ':' => buf.push(Tokens::Delim),
       '\\' => buf.push(Tokens::Lambda),
+      '-' => {
+        if text.chars().nth(0).unwrap() == '>' {
+          buf.remove(0);
+          buf.push(Tokens::Arrow)
+        }
+      }
       _ => {
         if !c.is_whitespace() {
           if c.is_lowercase() {
