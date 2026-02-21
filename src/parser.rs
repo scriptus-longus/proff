@@ -1,6 +1,6 @@
 use crate::lexer;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Type {
   Empty,
   Unit,
@@ -82,8 +82,6 @@ pub fn parse_type(buf: &mut Vec<lexer::Tokens>) -> Type {
 }
 
 pub fn parse_atomic_type(buf: &mut Vec<lexer::Tokens>) -> Type {
-  println!("LAST TYPE {:?}", buf.last());
-
   match buf.pop() {
     Some(lexer::Tokens::Type(x)) => {
       if x == 0 {

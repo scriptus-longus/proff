@@ -1,6 +1,7 @@
 
 mod lexer;
 mod parser;
+mod typechecker;
 
 use parser::Term;
 use parser::Type;
@@ -15,8 +16,10 @@ fn type_to_str(t: &Type) -> String {
       let left = type_to_str(l);
       ret.push_str(&left);
       ret.push_str(" -> ");
+      ret.push_str("(");
       let right = type_to_str(r);
       ret.push_str(&right);
+      ret.push_str(")");
     }
   }
 
@@ -110,27 +113,35 @@ fn beta_reduce_once(t: &mut Term, depth: u32) -> bool {
 
 
 fn main() {
-  let mut lx = lexer::lex_text(String::from("(\\a : A -> A. a t)"));
-  for x in &lx {
-    println!("{:?}", x);
-  }
+  let mut lx = lexer::lex_text(String::from("(\\a : A. \\b: A. \\c: A -> B. a"));
   lx.reverse();
 
-  let mut ast = parser::parse_term(&mut lx);
+  let ast = parser::parse_term(&mut lx);
 
   if !check_valid_expr(&ast, 0) {
     println!("Syntax error: Lambda is not well formed");
     return;
   }
 
-  let mut lambda_str = term_to_str(&ast, 0);
+  let lambda_str = term_to_str(&ast, 0);
 
   println!("Lambda: {}", lambda_str);
 
-  beta_reduce_once(&mut ast, 0);
+  let mut ctx = typechecker::Context::new();
+
+  let t = typechecker::type_check(&ast, &mut ctx);
+
+  let type_str = match t {
+    Ok(t) => type_to_str(&t),
+    _ => String::from("[!] Type c,ecking failed"),
+  };
+
+  println!("Type: {}", type_str);
+
+  /*beta_reduce_once(&mut ast, 0);
 
   lambda_str = term_to_str(&ast, 0);
 
-  println!("Lambda: {}", lambda_str);
+  println!("Lambda: {}", lambda_str);*/
 
 }
